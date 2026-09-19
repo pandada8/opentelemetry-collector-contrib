@@ -78,7 +78,7 @@ func TestMetricDataToLogService(t *testing.T) {
 	doubleHistogramDataPoints := doubleHistogram.DataPoints()
 	doubleHistogramDataPoint := doubleHistogramDataPoints.AppendEmpty()
 	doubleHistogramDataPoint.Attributes().PutStr("innerLabel", "innerValue")
-	doubleHistogramDataPoint.SetCount(2)
+	doubleHistogramDataPoint.SetCount(6)
 	doubleHistogramDataPoint.SetSum(10.1)
 	doubleHistogramDataPoint.SetTimestamp(pcommon.Timestamp(100_000_000))
 	doubleHistogramDataPoint.BucketCounts().FromRaw([]uint64{1, 2, 3})
@@ -143,7 +143,7 @@ func TestMetricLabelSanitize(t *testing.T) {
 	label.Append("0test", "key_0test")
 	label.Append("test_normal", "test_normal")
 	label.Append("0test", "key_0test")
-	assert.Equal(t, "key_test#$#key_test|key_0test#$#key_0test|test_normal#$#test_normal|key_0test#$#key_0test", label.String())
+	assert.Equal(t, "key_test#$#key_test|key_0test#$#key_0test|test_normal#$#test_normal", label.String())
 	label.Sort()
-	assert.Equal(t, "key_0test#$#key_0test|key_0test#$#key_0test|key_test#$#key_test|test_normal#$#test_normal", label.String())
+	assert.Equal(t, "key_0test#$#key_0test|key_test#$#key_test|test_normal#$#test_normal", label.String())
 }

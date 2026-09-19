@@ -54,8 +54,16 @@ func (kv *keyValues) Replace(key, value string) {
 	}
 }
 
+// Append adds or replaces a label after normalization. Later (more specific)
+// labels override defaults, so each exported series has unique label names.
 func (kv *keyValues) Append(key, value string) {
 	key = sanitize(key)
+	for i := range kv.keyValues {
+		if kv.keyValues[i].Key == key {
+			kv.keyValues[i].Value = value
+			return
+		}
+	}
 	kv.keyValues = append(kv.keyValues, keyValue{
 		key,
 		value,
@@ -140,6 +148,17 @@ func newMetricLogFromRaw(
 
 func resourceToMetricLabels(labels *keyValues, resource pcommon.Resource) {
 	attrs := resource.Attributes()
+	// Preserve all resource attributes while also exposing Prometheus identity.
+	if service, ok := attrs.Get("service.name"); ok && service.AsString() != "" {
+		job := service.AsString()
+		if namespace, ok := attrs.Get("service.namespace"); ok && namespace.AsString() != "" {
+			job = namespace.AsString() + "/" + job
+		}
+		labels.Append("job", job)
+	}
+	if instance, ok := attrs.Get("service.instance.id"); ok && instance.AsString() != "" {
+		labels.Append("instance", instance.AsString())
+	}
 	for k, v := range attrs.All() {
 		labels.Append(k, v.AsString())
 	}
@@ -183,15 +202,12 @@ func doubleHistogramMetricsToLogs(name string, data pmetric.HistogramDataPointSl
 		for k, v := range attributeMap.All() {
 			labels.Append(k, v.AsString())
 		}
-		logs = append(logs,
-			newMetricLogFromRaw(name+"_sum",
-				labels,
-				int64(dataPoint.Timestamp()),
-				dataPoint.Sum()),
-			newMetricLogFromRaw(name+"_count",
-				labels,
-				int64(dataPoint.Timestamp()),
-				float64(dataPoint.Count())))
+		if dataPoint.HasSum() {
+			logs = append(logs, newMetricLogFromRaw(name+"_sum", labels,
+				int64(dataPoint.Timestamp()), dataPoint.Sum()))
+		}
+		logs = append(logs, newMetricLogFromRaw(name+"_count", labels,
+			int64(dataPoint.Timestamp()), float64(dataPoint.Count())))
 
 		bounds := dataPoint.ExplicitBounds()
 		boundsStr := make([]string, bounds.Len()+1)
@@ -205,8 +221,10 @@ func doubleHistogramMetricsToLogs(name string, data pmetric.HistogramDataPointSl
 		bucketLabels := labels.Clone()
 		bucketLabels.Append(bucketLabelKey, "")
 		bucketLabels.Sort()
+		// OTLP buckets are disjoint; Prometheus le buckets are cumulative.
+		var cumulativeCount uint64
 		for i := range bucketCount {
-			bucket := dataPoint.BucketCounts().At(i)
+			cumulativeCount += dataPoint.BucketCounts().At(i)
 			bucketLabels.Replace(bucketLabelKey, boundsStr[i])
 
 			logs = append(
@@ -215,7 +233,7 @@ func doubleHistogramMetricsToLogs(name string, data pmetric.HistogramDataPointSl
 					name+"_bucket",
 					bucketLabels,
 					int64(dataPoint.Timestamp()),
-					float64(bucket),
+					float64(cumulativeCount),
 				),
 			)
 		}
@@ -288,11 +306,17 @@ func metricsDataToLogServiceData(
 		insMetricSlice := resMetricSlice.ScopeMetrics()
 		for j := 0; j < insMetricSlice.Len(); j++ {
 			insMetrics := insMetricSlice.At(j)
-			// ignore insMetrics.Scope()
+			scopeLabels := defaultLabels.Clone()
+			if name := insMetrics.Scope().Name(); name != "" {
+				scopeLabels.Append("otel_scope_name", name)
+			}
+			if version := insMetrics.Scope().Version(); version != "" {
+				scopeLabels.Append("otel_scope_version", version)
+			}
 			metricSlice := insMetrics.Metrics()
 			for k := 0; k < metricSlice.Len(); k++ {
 				oneMetric := metricSlice.At(k)
-				logs = append(logs, metricDataToLogServiceData(oneMetric, defaultLabels)...)
+				logs = append(logs, metricDataToLogServiceData(oneMetric, scopeLabels)...)
 			}
 		}
 	}

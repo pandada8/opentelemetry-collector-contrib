@@ -6,7 +6,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -24,7 +24,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -42,7 +42,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -60,7 +60,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -78,7 +78,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -96,7 +96,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -104,7 +104,7 @@
         },
         {
             "Key": "__value__",
-            "Value": "2"
+            "Value": "6"
         }
     ],
     [
@@ -114,7 +114,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|le#$#1|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|le#$#1|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -132,25 +132,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|le#$#2|service_name#$#unknown-service"
-        },
-        {
-            "Key": "__time_nano__",
-            "Value": "100000000"
-        },
-        {
-            "Key": "__value__",
-            "Value": "2"
-        }
-    ],
-    [
-        {
-            "Key": "__name__",
-            "Value": "double__histogram_bucket"
-        },
-        {
-            "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|le#$#+Inf|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|le#$#2|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -164,11 +146,29 @@
     [
         {
             "Key": "__name__",
+            "Value": "double__histogram_bucket"
+        },
+        {
+            "Key": "__labels__",
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|le#$#+Inf|service_name#$#unknown-service"
+        },
+        {
+            "Key": "__time_nano__",
+            "Value": "100000000"
+        },
+        {
+            "Key": "__value__",
+            "Value": "6"
+        }
+    ],
+    [
+        {
+            "Key": "__name__",
             "Value": "double_summary_sum"
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -186,7 +186,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -204,7 +204,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|quantile#$#0.9|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|quantile#$#0.9|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
@@ -222,7 +222,7 @@
         },
         {
             "Key": "__labels__",
-            "Value": "a#$#b|innerLabel#$#innerValue|labelA#$#valueA|labelB#$#valueB|quantile#$#0.95|service_name#$#unknown-service"
+            "Value": "a#$#b|innerLabel#$#innerValue|job#$#unknown-service|labelA#$#valueA|labelB#$#valueB|quantile#$#0.95|service_name#$#unknown-service"
         },
         {
             "Key": "__time_nano__",
