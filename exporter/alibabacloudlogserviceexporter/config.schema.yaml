@@ -24,3 +24,23 @@ properties:
   token_file_path:
     description: Set Token File Path if you are using ACK
     type: string
+  trace_format:
+    description: 'Trace output format: empty or "legacy" for the original SLS format, or "xtrace" for logstore-tracing.'
+    type: string
+  trace_pid:
+    description: XTrace application identifier to emit as pid. This is not an OS process ID.
+    type: string
+  trace_pid_by_service:
+    description: XTrace application identifiers keyed by exact resource service.name; overrides trace_pid.
+    type: object
+    additionalProperties:
+      type: string
+  trace_pid_auto_discovery:
+    description: Enable startup and hourly discovery of XTrace PIDs from SLS.
+    type: boolean
+  trace_pid_discovery_project:
+    description: Optional discovery source project; defaults to project.
+    type: string
+  trace_pid_discovery_logstore:
+    description: Optional discovery source logstore; defaults to logstore.
+    type: string

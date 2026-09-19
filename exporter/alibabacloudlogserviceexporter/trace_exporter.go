@@ -5,7 +5,9 @@ package alibabacloudlogserviceexporter // import "github.com/open-telemetry/open
 
 import (
 	"context"
+	"maps"
 
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -16,7 +18,10 @@ import (
 // newTracesExporter return a new LogService trace exporter.
 func newTracesExporter(set exporter.Settings, cfg component.Config) (exporter.Traces, error) {
 	l := &logServiceTraceSender{
-		logger: set.Logger,
+		logger:            set.Logger,
+		traceFormat:       cfg.(*Config).TraceFormat,
+		tracePID:          cfg.(*Config).TracePID,
+		tracePIDByService: maps.Clone(cfg.(*Config).TracePIDByService),
 	}
 
 	var err error
@@ -24,17 +29,26 @@ func newTracesExporter(set exporter.Settings, cfg component.Config) (exporter.Tr
 		return nil, err
 	}
 
+	if cfg.(*Config).TracePIDAutoDiscovery {
+		l.pidDiscovery = newPIDDiscovery(cfg.(*Config), set.Logger)
+	}
 	return exporterhelper.NewTraces(
 		context.TODO(),
 		set,
 		cfg,
 		l.pushTraceData,
+		exporterhelper.WithStart(l.start),
+		exporterhelper.WithShutdown(l.shutdown),
 	)
 }
 
 type logServiceTraceSender struct {
-	logger *zap.Logger
-	client logServiceClient
+	logger            *zap.Logger
+	client            logServiceClient
+	traceFormat       string
+	tracePID          string
+	tracePIDByService map[string]string
+	pidDiscovery      *pidDiscovery
 }
 
 func (s *logServiceTraceSender) pushTraceData(
@@ -42,9 +56,33 @@ func (s *logServiceTraceSender) pushTraceData(
 	td ptrace.Traces,
 ) error {
 	var err error
-	slsLogs := traceDataToLogServiceData(td)
+	var slsLogs []*sls.Log
+	if s.traceFormat == "xtrace" {
+		lookup := s.tracePIDByService
+		if s.pidDiscovery != nil {
+			lookup = s.pidDiscovery.lookup()
+			maps.Copy(lookup, s.tracePIDByService)
+		}
+		slsLogs = traceDataToXTrace(td, s.tracePID, lookup)
+	} else {
+		slsLogs = traceDataToLogServiceData(td)
+	}
 	if len(slsLogs) > 0 {
 		err = s.client.sendLogs(slsLogs)
 	}
 	return err
+}
+
+func (s *logServiceTraceSender) start(context.Context, component.Host) error {
+	if s.pidDiscovery != nil {
+		s.pidDiscovery.start()
+	}
+	return nil
+}
+
+func (s *logServiceTraceSender) shutdown(ctx context.Context) error {
+	if s.pidDiscovery != nil {
+		return s.pidDiscovery.shutdown(ctx)
+	}
+	return nil
 }

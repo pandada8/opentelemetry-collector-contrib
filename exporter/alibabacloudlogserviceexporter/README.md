@@ -20,6 +20,9 @@ This exporter supports sending OpenTelemetry data to [LogService](https://www.al
 - `endpoint` (required): LogService's [Endpoint](https://www.alibabacloud.com/help/doc-detail/29008.htm).
 - `project` (required): LogService's Project Name.
 - `logstore` (required): LogService's store Name. For metrics data, you should use metric store.
+- `trace_format` (optional): `legacy` (default, including an empty value) or `xtrace`. Applies to traces only.
+- `trace_pid` (optional): Fallback XTrace application identifier emitted as `pid`; requires `trace_format: xtrace`.
+- `trace_pid_by_service` (optional): Map from exact resource `service.name` to XTrace PID; takes precedence over `trace_pid` and requires `trace_format: xtrace`.
 - `access_key_id` (optional): AlibabaCloud access key id.
 - `access_key_secret` (optional): AlibabaCloud access key secret.
 - `security_token` (optional): AlibabaCloud security token for STS credentials.
@@ -88,3 +91,96 @@ service:
       receivers: [examplereceiver]
       exporters: [alibabacloud_logservice/metrics]
 ```
+
+## XTrace logstore-tracing
+
+For a logstore using the XTrace schema, select the format explicitly:
+
+```yaml
+exporters:
+  alibabacloud_logservice/xtrace:
+    endpoint: "cn-shanghai.log.aliyuncs.com"
+    project: "your-xtrace-project"
+    logstore: "logstore-tracing"
+    trace_format: xtrace
+    # Optional: the application identifier from XTrace, not process.pid.
+    # trace_pid: "your-xtrace-application-id"
+```
+
+Reference this exporter in the `traces` pipeline. Authentication uses the same
+options as the other examples.
+
+The XTrace format uses `traceId`, `spanId`, `parentSpanId`, `spanName`,
+`startTime`, `endTime`, `duration`, `kind`, `statusCode`, `statusMessage`, and
+`traceState`. Timestamps and duration are nanoseconds; `kind` and `statusCode`
+use the numeric OpenTelemetry enum values. The SLS log time remains in seconds.
+Invalid spans with an end before the start emit a zero duration.
+
+`resources` contains all resource attributes, including `service.name` and
+`host.name`, which are also exposed as `serviceName` and `hostname`.
+`attributes` contains span attributes and `otel.scope.name`/`otel.scope.version`
+when present. Resource, span, event and link attribute values are serialized as
+strings (structured values become JSON strings). Nonempty events use
+`events: [{"name": "...", "timestamp": 123, "attributes": {}}]`; nonempty links
+use `links: [{"traceId": "...", "spanId": "...", "traceState": "...", "attributes": {}}]`.
+
+PID lookup is performed per resource, so one batch may contain multiple services:
+
+```yaml
+trace_format: xtrace
+trace_pid_by_service:
+  orders: "orders-application-id"
+  payments: "payments-application-id"
+# Optional fallback for services missing from the table:
+# trace_pid: "fallback-application-id"
+```
+
+A matching `trace_pid_by_service` entry overrides `trace_pid`. Without automatic
+discovery, if neither is available, `pid` is omitted. Keys match resource
+`service.name` exactly, including case and punctuation; empty keys and values are rejected. The map is scoped to
+this exporter, not a global registry. If identical service names in different
+environments or namespaces use different PIDs, route them to separately configured
+exporters. Manual table updates require reloading/restarting the Collector
+configuration.
+Automatic discovery can be enabled as described below; lookups never query the
+cloud per span.
+
+An initial table can be obtained from existing XTrace data with
+`* | select serviceName, pid from log group by serviceName, pid limit 1000`.
+Use a suitable time range, check query completeness/truncation, and reject ambiguous
+names with multiple PIDs rather than arbitrarily choosing one. Services without
+recent spans will not appear. The exporter does not derive
+cloud application identifiers or backend enrichments such as `call.kind`,
+`destId`, or `ali.trace.flag`; existing span attributes are preserved. The XTrace option does not change logs,
+metrics, or the default legacy trace format.
+
+## Automatic XTrace PID discovery
+
+```yaml
+trace_format: xtrace
+trace_pid_auto_discovery: true
+# Optional authoritative source; defaults to this exporter's project/logstore:
+# trace_pid_discovery_project: "reference-project"
+# trace_pid_discovery_logstore: "reference-traces"
+```
+
+When enabled, the trace exporter asynchronously queries service/PID pairs on
+startup and every hour, using a rolling 24-hour window. It uses the same endpoint
+and credentials as the exporter, including STS/role credentials, and needs SLS
+query permission on the source store. Discovery is disabled by default.
+
+Precedence is manual `trace_pid_by_service`, then the discovered cache, then
+`trace_pid`, then omission. Before the initial query completes, only manual
+settings are available. Complete results replace the cache; ambiguous services
+with multiple PIDs are excluded. Failed, incomplete, or oversized results (over
+1000 distinct service/PID pairs) retain the previous cache and produce a warning.
+A cache that has not refreshed successfully for 24 hours is no longer used.
+Refresh requests have a 30-second deadline and are canceled on exporter shutdown.
+
+This discovers existing associations, not new cloud applications: services with
+no PID-bearing spans in the source window cannot be discovered. Prefer an
+authoritative source populated by the cloud ingestion path. When querying the
+same store the exporter writes to, its own output can perpetuate old mappings;
+manual overrides or a separate source are needed to correct those associations.
+Avoid a shared fallback PID for unrelated services. The cache lives in memory
+and is rebuilt after restart.

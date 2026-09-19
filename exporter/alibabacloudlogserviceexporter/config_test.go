@@ -46,6 +46,20 @@ func TestLoadConfig(t *testing.T) {
 				SecurityToken:   configopaque.String("test-token"),
 			},
 		},
+		{
+			id: component.NewIDWithName(metadata.Type, "xtrace"),
+			expected: &Config{
+				Endpoint:                  "cn-shanghai.log.aliyuncs.com",
+				Project:                   "demo-project",
+				Logstore:                  "logstore-tracing",
+				TraceFormat:               "xtrace",
+				TracePID:                  "demo-application-id",
+				TracePIDAutoDiscovery:     true,
+				TracePIDDiscoveryProject:  "reference-project",
+				TracePIDDiscoveryLogstore: "reference-traces",
+				TracePIDByService:         map[string]string{"orders.API": "orders-app-id", "payments": "payments-app-id"},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -61,4 +75,42 @@ func TestLoadConfig(t *testing.T) {
 			assert.Equal(t, tt.expected, cfg)
 		})
 	}
+}
+
+func TestValidateTraceFormat(t *testing.T) {
+	for _, format := range []string{"", "legacy", "xtrace"} {
+		assert.NoError(t, (&Config{TraceFormat: format}).Validate())
+	}
+	assert.ErrorContains(t, (&Config{TraceFormat: "typo"}).Validate(), "unsupported trace_format")
+	assert.ErrorContains(t, (&Config{TracePID: "app"}).Validate(), "trace_pid requires")
+	assert.NoError(t, (&Config{TraceFormat: "xtrace", TracePID: "app"}).Validate())
+}
+
+func TestValidateTracePIDLookup(t *testing.T) {
+	for _, tc := range []struct {
+		name, format, service, pid string
+		valid                      bool
+	}{
+		{"valid", "xtrace", "orders", "app-1", true},
+		{"legacy", "legacy", "orders", "app-1", false},
+		{"empty name", "xtrace", "", "app-1", false},
+		{"blank name", "xtrace", " ", "app-1", false},
+		{"empty pid", "xtrace", "orders", "", false},
+		{"blank pid", "xtrace", "orders", " ", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := (&Config{TraceFormat: tc.format, TracePIDByService: map[string]string{tc.service: tc.pid}}).Validate()
+			if tc.valid {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
+
+func TestValidatePIDAutoDiscovery(t *testing.T) {
+	require.ErrorContains(t, (&Config{TracePIDAutoDiscovery: true}).Validate(), "requires trace_format xtrace")
+	require.ErrorContains(t, (&Config{TraceFormat: "xtrace", TracePIDDiscoveryProject: "source"}).Validate(), "requires trace_pid_auto_discovery")
+	require.NoError(t, (&Config{TraceFormat: "xtrace", TracePIDAutoDiscovery: true}).Validate())
 }

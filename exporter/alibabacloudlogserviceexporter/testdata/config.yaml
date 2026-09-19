@@ -7,3 +7,15 @@ alibabacloud_logservice/2:
   access_key_id: "test-id"
   access_key_secret: "test-secret"
   security_token: "test-token"
+alibabacloud_logservice/xtrace:
+  endpoint: "cn-shanghai.log.aliyuncs.com"
+  project: "demo-project"
+  logstore: "logstore-tracing"
+  trace_format: "xtrace"
+  trace_pid: "demo-application-id"
+  trace_pid_by_service:
+    orders.API: "orders-app-id"
+    payments: "payments-app-id"
+  trace_pid_auto_discovery: true
+  trace_pid_discovery_project: "reference-project"
+  trace_pid_discovery_logstore: "reference-traces"
