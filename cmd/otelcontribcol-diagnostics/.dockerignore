@@ -1,0 +1,5 @@
+**
+!_build/
+!_build/otelcol-contrib
+!_build-sls/
+!_build-sls/otelcol-contrib
